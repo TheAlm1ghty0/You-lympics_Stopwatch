@@ -18,12 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-// Corrected imports to use the stopwatch app's own copied files
-import com.Kohnqueror.you_lympics_stopwatch.Player;
-import com.Kohnqueror.you_lympics_stopwatch.PlayerDataManager;
-import com.Kohnqueror.you_lympics_stopwatch.TournamentSettings;
-
-
 public class MainActivity extends AppCompatActivity implements PlayerDataManager.PlayerDataListener {
 
     // UI Components
@@ -82,16 +76,15 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
 
             if (onlyRound1Available) {
                 roundSpinnerLayout.setVisibility(View.GONE);
-                selectedRound = 1; // Default to Round 1 when dropdown is hidden
+                selectedRound = 1;
             } else {
                 roundSpinnerLayout.setVisibility(View.VISIBLE);
-                // If the dropdown becomes visible, force a re-selection
                 if (roundAutoComplete.getText().toString().isEmpty()) {
                     selectedRound = -1;
                 }
             }
             setupRoundSpinner(settings);
-            checkSaveButtonState(); // Update save button state after settings change
+            checkSaveButtonState();
         });
     }
 
@@ -117,7 +110,9 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
             }
         });
 
-        resetButton.setOnClickListener(v -> resetTimer());
+        resetButton.setOnClickListener(v -> {
+            resetTimerAndSelections();
+        });
 
         saveButton.setOnClickListener(v -> saveTime());
     }
@@ -136,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
 
         playerAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
             selectedPlayer = sortedPlayerList.get(position);
+            resetTimerDisplay();
             checkSaveButtonState();
             playerAutoComplete.clearFocus();
         });
@@ -151,6 +147,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         eventAutoComplete.setAdapter(adapter);
         eventAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
             selectedEvent = position + 1;
+            resetTimerDisplay();
             checkSaveButtonState();
             eventAutoComplete.clearFocus();
         });
@@ -175,13 +172,10 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         roundAutoComplete.setAdapter(adapter);
         roundAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
             String selectedRoundStr = (String) parent.getItemAtPosition(position);
-            if (selectedRoundStr.equals("Round 1")) {
-                selectedRound = 1;
-            } else if (selectedRoundStr.equals("Round 2")) {
-                selectedRound = 2;
-            } else if (selectedRoundStr.equals("Round 3")) {
-                selectedRound = 3;
-            }
+            if (selectedRoundStr.equals("Round 1")) selectedRound = 1;
+            else if (selectedRoundStr.equals("Round 2")) selectedRound = 2;
+            else if (selectedRoundStr.equals("Round 3")) selectedRound = 3;
+            resetTimerDisplay();
             checkSaveButtonState();
             roundAutoComplete.clearFocus();
         });
@@ -205,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         startStopButton.setText("Stop");
         resetButton.setEnabled(false);
         saveButton.setEnabled(false);
-        setSelectorsEnabled(false); // Lock dropdowns
+        setSelectorsEnabled(false);
     }
 
     private void stopTimer() {
@@ -213,16 +207,20 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         timerHandler.removeCallbacks(timerRunnable);
         startStopButton.setText("Start");
         resetButton.setEnabled(true);
-        setSelectorsEnabled(true); // Unlock dropdowns
+        setSelectorsEnabled(true);
         checkSaveButtonState();
     }
 
-    private void resetTimer() {
+    private void resetTimerDisplay() {
         timeInMillis = 0L;
         startTime = 0L;
         timerTextView.setText("00.000");
         saveButton.setEnabled(false);
-        setSelectorsEnabled(true); // Ensure dropdowns are enabled on reset
+    }
+
+    private void resetTimerAndSelections() {
+        resetTimerDisplay();
+        setSelectorsEnabled(true);
 
         playerAutoComplete.setText("", false);
         eventAutoComplete.setText("", false);
@@ -230,7 +228,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         selectedPlayer = null;
         selectedEvent = -1;
 
-        // If the round spinner is hidden, the round is implicitly 1. Otherwise, it needs to be re-selected.
         if (roundSpinnerLayout.getVisibility() == View.GONE) {
             selectedRound = 1;
         } else {
@@ -248,7 +245,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     private void saveTime() {
         if (selectedPlayer == null || selectedEvent == -1 || selectedRound == -1) {
             Toast.makeText(this, "Please select a player, event, and round.", Toast.LENGTH_SHORT).show();
-            // Flash timer red for error
             timerTextView.setTextColor(getResources().getColor(android.R.color.holo_red_light));
             new Handler(Looper.getMainLooper()).postDelayed(() -> timerTextView.setTextColor(getResources().getColor(android.R.color.white)), 1000);
             return;
@@ -262,7 +258,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
 
         Toast.makeText(this, "Time saved for " + selectedPlayer.getName(), Toast.LENGTH_SHORT).show();
 
-        // Flash timer green for confirmation
         timerTextView.setTextColor(getResources().getColor(android.R.color.holo_green_light));
         new Handler(Looper.getMainLooper()).postDelayed(() -> timerTextView.setTextColor(getResources().getColor(android.R.color.white)), 1000);
     }
