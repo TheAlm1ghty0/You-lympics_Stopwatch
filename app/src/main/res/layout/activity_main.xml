@@ -31,18 +31,12 @@
     <!-- Player Selection Dropdown -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layout_player_spinner"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        style="@style/CustomExposedDropdownMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
-        android:hint="Player"
-        app:boxStrokeColor="#888888"
-        app:hintTextColor="#D3D3D3"
-        app:boxCornerRadiusTopStart="12dp"
-        app:boxCornerRadiusTopEnd="12dp"
-        app:boxCornerRadiusBottomStart="12dp"
-        app:boxCornerRadiusBottomEnd="12dp"
+        android:hint="Player Select"
         app:layout_constraintTop_toTopOf="@id/guideline_center"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -52,7 +46,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="none"
-            android:textColor="@android:color/white"/>
+            android:textColor="@android:color/white"
+            android:popupBackground="@drawable/spinner_dropdown_background"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Event and Round Selection -->
@@ -66,21 +61,41 @@
         app:layout_constraintStart_toStartOf="@id/layout_player_spinner"
         app:layout_constraintEnd_toEndOf="@id/layout_player_spinner">
 
-        <Spinner
-            android:id="@+id/spinner_event"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_event_spinner"
+            style="@style/CustomExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:background="@android:drawable/btn_dropdown"/>
+            android:hint="Event Select">
 
-        <Spinner
-            android:id="@+id/spinner_round"
+            <AutoCompleteTextView
+                android:id="@+id/autocomplete_event"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textColor="@android:color/white"
+                android:popupBackground="@drawable/spinner_dropdown_background"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_round_spinner"
+            style="@style/CustomExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:background="@android:drawable/btn_dropdown"/>
+            android:hint="Round Select">
+
+            <AutoCompleteTextView
+                android:id="@+id/autocomplete_round"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textColor="@android:color/white"
+                android:popupBackground="@drawable/spinner_dropdown_background"/>
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
     <!-- Control Buttons -->

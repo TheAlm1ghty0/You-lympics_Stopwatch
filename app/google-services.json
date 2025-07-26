@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "847252947017",
+    "project_id": "you-lympics-leaderboard",
+    "storage_bucket": "you-lympics-leaderboard.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847252947017:android:588dbccb7d5d84c0c0ff98",
+        "android_client_info": {
+          "package_name": "com.Kohnqueror.you_lympics_leaderboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRUj-fPrWghHvUiUxzKyvNjsleyQuErRU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847252947017:android:b99c9ceca00bb651c0ff98",
+        "android_client_info": {
+          "package_name": "com.Kohnqueror.you_lympics_stopwatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRUj-fPrWghHvUiUxzKyvNjsleyQuErRU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
