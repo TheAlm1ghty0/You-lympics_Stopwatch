@@ -24,6 +24,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            applicationVariants.all {
+                val variant = this
+                variant.outputs.all {
+                    val output = this
+                    val newApkName = "Stopwatch.apk"
+                    (output as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = newApkName
+                }
+            }
         }
     }
     compileOptions {
