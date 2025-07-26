@@ -2,6 +2,7 @@ package com.Kohnqueror.you_lympics_stopwatch;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -35,14 +36,14 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     // Timer State
     private boolean isRunning = false;
     private long startTime = 0L;
-    private Handler timerHandler = new Handler();
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
     private long timeInMillis = 0L;
 
     // Data
     private List<Player> sortedPlayerList;
     private Player selectedPlayer;
-    private int selectedEvent = 1;
-    private int selectedRound = 1;
+    private int selectedEvent = -1; // Default to unselected
+    private int selectedRound = -1; // Default to unselected
 
     private final List<String> timedEventNames = Arrays.asList(
             "Strawpedo", "Race 2 Pint", "Crab Run", "Ping Pong Run"
@@ -54,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         setContentView(R.layout.activity_main);
         findViews();
         setupButtons();
-        setupEventSpinner(); // Initialize the event spinner
+        setupEventSpinner();
     }
 
     @Override
@@ -77,13 +78,20 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     @Override
     public void onSettingsUpdated(TournamentSettings settings) {
         runOnUiThread(() -> {
-            // Hide the round spinner if both R2 and R3 are locked
-            if (settings.isRound2Locked() && settings.isRound3Locked()) {
+            boolean onlyRound1Available = settings.isRound2Locked() && settings.isRound3Locked();
+
+            if (onlyRound1Available) {
                 roundSpinnerLayout.setVisibility(View.GONE);
+                selectedRound = 1; // Default to Round 1 when dropdown is hidden
             } else {
                 roundSpinnerLayout.setVisibility(View.VISIBLE);
+                // If the dropdown becomes visible, force a re-selection
+                if (roundAutoComplete.getText().toString().isEmpty()) {
+                    selectedRound = -1;
+                }
             }
             setupRoundSpinner(settings);
+            checkSaveButtonState(); // Update save button state after settings change
         });
     }
 
@@ -129,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         playerAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
             selectedPlayer = sortedPlayerList.get(position);
             checkSaveButtonState();
+            playerAutoComplete.clearFocus();
         });
 
         playerAutoComplete.setOnDismissListener(() -> {
@@ -142,6 +151,8 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         eventAutoComplete.setAdapter(adapter);
         eventAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
             selectedEvent = position + 1;
+            checkSaveButtonState();
+            eventAutoComplete.clearFocus();
         });
 
         eventAutoComplete.setOnDismissListener(() -> {
@@ -163,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_dropdown_item, rounds);
         roundAutoComplete.setAdapter(adapter);
         roundAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
-            // This logic needs to be smarter to handle hidden rounds
             String selectedRoundStr = (String) parent.getItemAtPosition(position);
             if (selectedRoundStr.equals("Round 1")) {
                 selectedRound = 1;
@@ -172,6 +182,8 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
             } else if (selectedRoundStr.equals("Round 3")) {
                 selectedRound = 3;
             }
+            checkSaveButtonState();
+            roundAutoComplete.clearFocus();
         });
 
         roundAutoComplete.setOnDismissListener(() -> {
@@ -180,13 +192,20 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         });
     }
 
+    private void setSelectorsEnabled(boolean isEnabled) {
+        playerSpinnerLayout.setEnabled(isEnabled);
+        eventSpinnerLayout.setEnabled(isEnabled);
+        roundSpinnerLayout.setEnabled(isEnabled);
+    }
+
     private void startTimer() {
         isRunning = true;
-        startTime = SystemClock.uptimeMillis() - timeInMillis; // Resume from where it was paused
+        startTime = SystemClock.uptimeMillis() - timeInMillis;
         timerHandler.postDelayed(timerRunnable, 0);
         startStopButton.setText("Stop");
         resetButton.setEnabled(false);
         saveButton.setEnabled(false);
+        setSelectorsEnabled(false); // Lock dropdowns
     }
 
     private void stopTimer() {
@@ -194,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         timerHandler.removeCallbacks(timerRunnable);
         startStopButton.setText("Start");
         resetButton.setEnabled(true);
+        setSelectorsEnabled(true); // Unlock dropdowns
         checkSaveButtonState();
     }
 
@@ -202,16 +222,21 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         startTime = 0L;
         timerTextView.setText("00.000");
         saveButton.setEnabled(false);
+        setSelectorsEnabled(true); // Ensure dropdowns are enabled on reset
 
-        // Clear dropdown selections
         playerAutoComplete.setText("", false);
         eventAutoComplete.setText("", false);
         roundAutoComplete.setText("", false);
         selectedPlayer = null;
-        selectedEvent = 1;
-        selectedRound = 1;
+        selectedEvent = -1;
 
-        // Clear focus to reset the UI state of the dropdowns
+        // If the round spinner is hidden, the round is implicitly 1. Otherwise, it needs to be re-selected.
+        if (roundSpinnerLayout.getVisibility() == View.GONE) {
+            selectedRound = 1;
+        } else {
+            selectedRound = -1;
+        }
+
         playerSpinnerLayout.clearFocus();
         eventSpinnerLayout.clearFocus();
         roundSpinnerLayout.clearFocus();
@@ -221,8 +246,11 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     }
 
     private void saveTime() {
-        if (selectedPlayer == null) {
-            Toast.makeText(this, "Please select a player.", Toast.LENGTH_SHORT).show();
+        if (selectedPlayer == null || selectedEvent == -1 || selectedRound == -1) {
+            Toast.makeText(this, "Please select a player, event, and round.", Toast.LENGTH_SHORT).show();
+            // Flash timer red for error
+            timerTextView.setTextColor(getResources().getColor(android.R.color.holo_red_light));
+            new Handler(Looper.getMainLooper()).postDelayed(() -> timerTextView.setTextColor(getResources().getColor(android.R.color.white)), 1000);
             return;
         }
 
@@ -233,14 +261,17 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         PlayerDataManager.getInstance().updatePlayer(selectedPlayer);
 
         Toast.makeText(this, "Time saved for " + selectedPlayer.getName(), Toast.LENGTH_SHORT).show();
-        resetTimer();
+
+        // Flash timer green for confirmation
+        timerTextView.setTextColor(getResources().getColor(android.R.color.holo_green_light));
+        new Handler(Looper.getMainLooper()).postDelayed(() -> timerTextView.setTextColor(getResources().getColor(android.R.color.white)), 1000);
     }
 
     private void checkSaveButtonState() {
-        saveButton.setEnabled(selectedPlayer != null && timeInMillis > 0 && !isRunning);
+        saveButton.setEnabled(selectedPlayer != null && selectedEvent != -1 && selectedRound != -1 && timeInMillis > 0 && !isRunning);
     }
 
-    private Runnable timerRunnable = new Runnable() {
+    private final Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
             timeInMillis = SystemClock.uptimeMillis() - startTime;
