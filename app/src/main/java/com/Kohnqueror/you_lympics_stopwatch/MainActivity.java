@@ -1,9 +1,13 @@
 package com.Kohnqueror.you_lympics_stopwatch;
 
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -26,7 +30,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     private AutoCompleteTextView playerAutoComplete, eventAutoComplete, roundAutoComplete;
     private TextInputLayout playerSpinnerLayout, eventSpinnerLayout, roundSpinnerLayout;
 
-
     // Timer State
     private boolean isRunning = false;
     private long startTime = 0L;
@@ -36,8 +39,11 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     // Data
     private List<Player> sortedPlayerList;
     private Player selectedPlayer;
-    private int selectedEvent = -1; // Default to unselected
-    private int selectedRound = -1; // Default to unselected
+    private int selectedEvent = -1;
+    private int selectedRound = -1;
+
+    // Haptic Feedback
+    private Vibrator vibrator;
 
     private final List<String> timedEventNames = Arrays.asList(
             "Strawpedo", "Race 2 Pint", "Crab Run", "Ping Pong Run"
@@ -47,6 +53,10 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Get the vibrator service
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
         findViews();
         setupButtons();
         setupEventSpinner();
@@ -73,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
     public void onSettingsUpdated(TournamentSettings settings) {
         runOnUiThread(() -> {
             boolean onlyRound1Available = settings.isRound2Locked() && settings.isRound3Locked();
-
             if (onlyRound1Available) {
                 roundSpinnerLayout.setVisibility(View.GONE);
                 selectedRound = 1;
@@ -101,8 +110,21 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         roundSpinnerLayout = findViewById(R.id.layout_round_spinner);
     }
 
+    private void triggerVibration() {
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Vibrate with a modern effect
+                vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                // Vibrate for older devices
+                vibrator.vibrate(50);
+            }
+        }
+    }
+
     private void setupButtons() {
         startStopButton.setOnClickListener(v -> {
+            triggerVibration();
             if (isRunning) {
                 stopTimer();
             } else {
@@ -111,11 +133,17 @@ public class MainActivity extends AppCompatActivity implements PlayerDataManager
         });
 
         resetButton.setOnClickListener(v -> {
+            triggerVibration();
             resetTimerAndSelections();
         });
 
-        saveButton.setOnClickListener(v -> saveTime());
+        saveButton.setOnClickListener(v -> {
+            triggerVibration();
+            saveTime();
+        });
     }
+
+    // ... (The rest of your MainActivity code remains the same)
 
     private void setupPlayerDropdown(List<Player> players) {
         sortedPlayerList = new ArrayList<>(players);
