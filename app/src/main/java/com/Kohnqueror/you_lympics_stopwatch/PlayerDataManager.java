@@ -1,13 +1,11 @@
 package com.Kohnqueror.you_lympics_stopwatch;
 
 import android.util.Log;
-
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,7 +47,6 @@ public class PlayerDataManager {
         if (!listeners.contains(listener)) {
             listeners.add(listener);
         }
-        // Immediately notify with current data if available
         if (!playerList.isEmpty()) {
             listener.onDataUpdated(new ArrayList<>(playerList));
         }
@@ -63,7 +60,6 @@ public class PlayerDataManager {
     }
 
     private void startListeningForUpdates() {
-        // --- Listener for Players ---
         CollectionReference playersCollection = db.collection("players");
         playerListenerReg = playersCollection.addSnapshotListener((snapshots, e) -> {
             if (e != null) {
@@ -85,7 +81,6 @@ public class PlayerDataManager {
             }
         });
 
-        // --- Listener for Settings ---
         DocumentReference settingsDoc = db.collection("settings").document("tournament_config");
         settingsListenerReg = settingsDoc.addSnapshotListener((snapshot, e) -> {
             if (e != null) {
@@ -95,22 +90,11 @@ public class PlayerDataManager {
             if (snapshot != null && snapshot.exists()) {
                 tournamentSettings = snapshot.toObject(TournamentSettings.class);
             } else {
-                // If settings don't exist, create them with defaults (locked)
                 tournamentSettings = new TournamentSettings();
                 updateTournamentSettings(tournamentSettings);
             }
             notifySettingsListeners();
         });
-    }
-
-    public void updateTournamentSettings(TournamentSettings settings) {
-        this.tournamentSettings = settings;
-        db.collection("settings").document("tournament_config").set(settings)
-                .addOnFailureListener(e -> Log.w(TAG, "Error updating settings", e));
-    }
-
-    public TournamentSettings getTournamentSettings() {
-        return tournamentSettings;
     }
 
     private void notifyDataListeners() {
@@ -127,12 +111,22 @@ public class PlayerDataManager {
         }
     }
 
+    public void updateTournamentSettings(TournamentSettings settings) {
+        this.tournamentSettings = settings;
+        db.collection("settings").document("tournament_config").set(settings)
+                .addOnFailureListener(e -> Log.w(TAG, "Error updating settings", e));
+    }
+
     private void createInitialData() {
         CollectionReference playersCollection = db.collection("players");
         for (String name : PLAYER_NAMES) {
             Player player = new Player(name);
+            // Use the player's name as the unique document ID
+            String playerId = name.toLowerCase();
+            player.setId(playerId);
             player.calculateTotalPoints();
-            playersCollection.add(player);
+            // Use .document(id).set(player) instead of .add(player)
+            playersCollection.document(playerId).set(player);
         }
     }
 
@@ -144,15 +138,19 @@ public class PlayerDataManager {
         }
     }
 
+    public void restorePlayers(List<Player> playersToRestore) {
+        for (Player player : playersToRestore) {
+            updatePlayer(player);
+        }
+    }
+
     public void resetAllData() {
-        // Reset players
         for (Player player : playerList) {
             Player freshPlayer = new Player(player.getName());
             freshPlayer.setId(player.getId());
             freshPlayer.calculateTotalPoints();
             updatePlayer(freshPlayer);
         }
-        // Reset settings to default (locked)
         updateTournamentSettings(new TournamentSettings());
     }
 
@@ -163,6 +161,10 @@ public class PlayerDataManager {
             }
         }
         return null;
+    }
+
+    public List<Player> getPlayerList() {
+        return new ArrayList<>(playerList);
     }
 
     public interface PlayerDataListener {
